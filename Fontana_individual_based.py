@@ -5,131 +5,167 @@ import pickle
 import copy
 
 
-class Genotype(object):
-    """
-    A sequence.
+class Population(object):
 
-    **Attributes:**
-
-    * **n_alleles** (*int* between 2 and 10) -- number of alleles per locus (size of the alphabet)
-    * **n_loci** -- number of loci, given by ``len(seq)``
-    * **seq** (*str* of integers in ``range(n_alleles)``) -- sequence of length **n_loci**
-    """
-
-    def __init__(self, seq, n_alleles):
+    def __init__(self, N, r, u, n_alleles, starting_seq):
         """
-        Initialize a Genotype object with an input **seq** and **n_alleles**.
+        Initiate the population object as a list of Genotype objects with seq "000" and 4 loci.
 
-        :param seq: sequence of length **n_loci**
-        :type seq: str
-        :param n_alleles: number of alleles per locus
-        :type n_alleles: int
-        :return: Genotype object
-
-        >>> x = Genotype("00101", 3)
-        >>> print x.seq, x.n_loci, x.n_alleles, x.int_repr
-        00101 5 3 10
+        :param N: population size
+        :param r: recombination rate
+        :param u: mutation rate
+        :param n_alleles: number of alleles
+        :param starting_seq: the sequence of population at the start of simulation
+        :type starting_seq: string
         """
-        assert n_alleles > 1 and n_alleles < 11
-        assert type(seq) == str
-        for allele in seq:
-            assert int(allele) < n_alleles
-        self.seq = seq
+        assert type(starting_seq) == str
+        self.population = []
+        for i in range(N):
+            self.population.append(starting_seq)
+        self.N = N
+        self.r = r
+        self.u = u
         self.n_alleles = n_alleles
+        self.n_loci = len(starting_seq)
+        self.network_list = []
+
+    def add_list_to_network(self, lst):
+        """
+        Add a list of sequences to the network.
+
+        :param lst: list of sequences in the network
+        :type lst: list
+        """
+        assert type(lst) == list
+        self.network_list = lst
+
+
+    def is_in_network(self, offspring):
+        """
+        Check to see whether the genotype is in the network
+        """
+        assert type(offspring) == str
+        if offspring in self.network_list:
+            return True
+
+
+    def define_module(self, module_1, module_2):
+        """
+        Define the modules in the network and make sure that they belong to the network.
+
+        :param module_1: a list of sequences forming the first module in the network.
+        :param module_2: a list of sequences forming the second module in the network.
+        """
+        assert type(module_1) == list
+        assert type(module_2) == list
+        assert len(module_1 + module_2) == len(self.network_list)
+
+        # Make sure that modules belong to the network
+        for i in range(len(module_1)):
+            assert module_1[i] in self.network_list
+        for i in range(len(module_2)):
+            assert module_2[i] in self.network_list
+        self.module_1 = module_1
+        self.module_2 = module_2
 
     @property
-    def n_loci(self):
-        return len(self.seq)
+    def modules(self):
+        """
+        Return the modules of the network.
+        """
+        return self.module_1 + self.module_2
 
 
-    def mutate(self, u):
+    @property
+    def network(self):
         """
-        Muate a sequence with the probability of u.
+        Return the list of sequnces which form the network.
         """
-        assert 0 <= u <= 1
-        if rnd.rand() <= u:
-            mut = list(self.seq)
-            index = rnd.randint(0, self.n_loci)
-            while True:
-                mutation = rnd.randint(0, self.n_alleles)
-                # Ensures that mutation is always different from the original sequence
-                if mutation != mut[index]:
-                    break
-            mut[index] = str(mutation)
-            self.seq = "".join(mut)
-            return self
-    
+        return self.network_list
+
+
+
     @staticmethod
     def cross_over(seq1, seq2, n_alleles, n_loci):
         """
         Peform cross over between two sequences.
         Recombination happens at a random position, randint drawn from n_loci.
         One of the two recombinant sequences is being chosen by chance (50:50).
+
+        :param seq1:
+        :param seq2:
+        :param n_alleles:
+        :param n_loci:
+        :return rec: the product of recombination
         """
         pos = rnd.randint(1, n_loci)
-        rec1 = seq1[0:pos] + seq2[pos:]
-        rec2 = seq2[0:pos] + seq1[pos:]
         if rnd.randint(0,2) == 0:
-            return Genotype(rec1, n_alleles)
+            rec = seq1[0:pos] + seq2[pos:]
+            return rec
         else:
-            return Genotype(rec2, n_alleles)
-        
-    
-    def generate_offspring(self, other, u, r):
+            rec = seq2[0:pos] + seq1[pos:]
+            return rec
+
+
+    @staticmethod
+    def mutate(u, n_alleles,seq):
+        """
+        Mutate "seq" by the probability of "u".
+
+        :param u: mutation rate
+        :param n_alleles: number of alleles
+        :param seq:
+        :type seq: string
+        :return mutant: the product of mutation
+        """
+        assert type(seq) == str
+        assert 0 <= u <= 1
+        if rnd.rand() <= u:
+            #Determine the soon-too-be-mutated locus at random
+            pos = rnd.randint(0, len(seq))
+            #Draw the mutation from availible alleles
+            mut = rnd.randint(0, n_alleles)
+            #Ensure that the mutation is different from the current allele at locus of interest
+            if mut == int(seq[pos]):
+                #If the mutatnt allele is the same as current allele, draw a new mutation at random from availible alleles untill the condition is met.
+                while mut == int(seq[pos]):
+                    mut = rnd.randint(0, 4)
+                else:
+                    mutatnt = seq[0:pos] + str(mut) + seq[pos+1:]
+                    return mutatnt
+            else:
+                mutatnt = seq[0:pos] + str(mut) + seq[pos+1:]
+                return mutatnt
+
+
+    @staticmethod
+    def generate_offspring(seq1, seq2, n_alleles, n_loci, u, r):
         """
         Generate offspring using recombination and then mutation.
+
+        :return offspring: sequences which has undergone recombination and mutation.
         """
-        assert type(self) == Genotype
-        assert type(other) == Genotype
-        assert self.n_loci == other.n_loci
-        assert self.n_alleles == other.n_alleles
+        assert len(seq1) == len(seq2)
         assert r >= 0
         assert r <= 0.5
-        
-        offspring = copy.deepcopy(self)
         if rnd.rand() <= r:
-            rec = Genotype.cross_over(self.seq, other.seq, self.n_alleles, self.n_loci)
-            offspring.seq = rec.seq
+            rec = cross_over(seq1, seq2, n_alleles, n_loci)
         else:
             if rnd.randint(0,2) == 0:
-                offspring.seq = other.seq
-        offspring.mutate(u)
+                rec = seq1
+            else:
+                rec = seq2
+        offspring = mutate(u, n_alleles, rec)
         return offspring
 
-
-
-class Population(object):
-    
-    def __init__(self, N, r, u, starting_seq, network_list):
-        """
-        Initiate the population object as a list of Genotype objects with seq "000" and 4 loci.
-        """
-        assert type(network_list) == list
-        assert type(starting_seq) == str
-        self.population = []
-        for i in range(N):
-            self.population.append(Genotype(starting_seq, 4))
-        self.N = N
-        self.r = r
-        self.u = u
-        self.network_list = network_list
-        
-    def is_in_network(self, offspring):
-        """
-        Check to see whether the genotype is in the network
-        """
-        assert type(offspring) == Genotype
-        for i in range(len(self.network_list)):
-            if self.network_list[i] == offspring.seq:
-                return True
-            
-            
     def get_next_generation(self):
         """
-        Create the next generation. The events occur in the following order: 
+        Create the next generation. The events occur in the following order:
         (i) Picking two individulas from the population at random
         (ii) recombining and mutate the individulas proportional to their r and u
-        (iii) See whether the offpring is a part of the network and if so add it to the next generation 
+        (iii) See whether the offpring is a part of the network and if so add it to the next generation
+
+        :return next_generation: a list of sequences comprising the next generation
         """
         next_generation = copy.deepcopy(self)
         next_generation.population = []
@@ -138,33 +174,39 @@ class Population(object):
             ind_1 = self.population[randint(0, self.N)]
             ind_2 = self.population[randint(0, self.N)]
             #(ii) Generating the offspring
-            offspring = ind_1.generate_offspring(ind_2, self.u, self.r)
+            offspring = generate_offspring(ind_1, ind_2, self.n_alleles, self.n_loci, self.u, self.r)
             for i in range(len(self.network_list)):
                 #(iii) Check whether the offspring is in the network
                 if self.is_in_network(offspring) == True:
                     next_generation.population.append(offspring)
-        return next_generation 
-                
+        return next_generation
+
 
     def get_stats(self):
         """
         Count the number of individulas at each node in the network.
-        It creats a list of sequences (step(i)). Then counts the number of each sequence in the list and adds the sequence and its count
-        to the self.stats dictionary (step(ii)).
         """
         self.stats = {}
-        #(i)
-        sequences = []
-        for i in range(len(self.population)):
-            sequences.append(self.population[i].seq)
-        #(ii)
+
         for i in self.network_list:
-            self.stats[i] = sequences.count(i)
-        genotype_count = (self.stats['001'] + self.stats['101'] + self.stats['201']) - (self.stats['010'] + self.stats['011'] + self.stats['012'])
+            self.stats[i] = self.population.count(i)
+
+        # Count the number of individuals in the first module
+        module_1_genotype_count = 0
+        for i in range(len(self.module_1)):
+            module_1_genotype_count += self.stats[self.module[i]]
+
+        # Count the number of individuals in the second module
+        module_2_genotype_count = 0
+        for i in range(len(self.module_2)):
+            module_2_genotype_count += self.stats[self.module[i]]
+
+        # colculate the genotype count by subtractiing the #individuals in modules form each other
+        genotype_count = module_1_genotype_count - module_2_genotype_count
         self.stats['genotype_count'] = genotype_count
         self.stats['<m>'] = np.divide(float(genotype_count),float(self.N))
         return self.stats
-            
+
 
 
 class Evolution(object):
@@ -172,6 +214,13 @@ class Evolution(object):
     This object manipulates the object population to simulate over generations.
     """
     def __init__(self, population, n_generations, period = 1, verbose = False, name = "simulation"):
+        """
+        Save the population objects in the course of simulation.
+
+        :param population: starting population
+        :param n_generations: the number of generations
+        :param period: period of pickling
+        """
         gen = 0
         population.get_stats()
         self.curr_population = population
@@ -188,5 +237,4 @@ class Evolution(object):
                 file.close()
                 if verbose:
                     print gen
-
 
