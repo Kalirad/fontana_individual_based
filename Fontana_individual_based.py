@@ -20,14 +20,13 @@ class Population(object):
         """
         assert type(starting_seq) == str
         self.population = []
-        for i in range(N):
-            self.population.append(starting_seq)
         self.N = N
         self.r = r
         self.u = u
         self.n_alleles = n_alleles
         self.n_loci = len(starting_seq)
-        self.network_list = []
+        for i in range(N):
+            self.population.append(starting_seq)
 
     def add_list_to_network(self, lst):
         """
@@ -123,7 +122,7 @@ class Population(object):
         if rnd.rand() <= u:
             #Determine the soon-too-be-mutated locus at random
             pos = rnd.randint(0, len(seq))
-            #Draw the mutation from availible alleles
+            #Draw the mutation from available alleles
             mut = rnd.randint(0, n_alleles)
             #Ensure that the mutation is different from the current allele at locus of interest
             if mut == int(seq[pos]):
@@ -136,6 +135,8 @@ class Population(object):
             else:
                 mutatnt = seq[0:pos] + str(mut) + seq[pos+1:]
                 return mutatnt
+        else:
+            return seq
 
 
     @staticmethod
@@ -149,13 +150,13 @@ class Population(object):
         assert r >= 0
         assert r <= 0.5
         if rnd.rand() <= r:
-            rec = cross_over(seq1, seq2, n_alleles, n_loci)
+            rec = Population.cross_over(seq1, seq2, n_alleles, n_loci)
         else:
             if rnd.randint(0,2) == 0:
                 rec = seq1
             else:
                 rec = seq2
-        offspring = mutate(u, n_alleles, rec)
+        offspring = Population.mutate(u, n_alleles, rec)
         return offspring
 
     def get_next_generation(self):
@@ -174,7 +175,7 @@ class Population(object):
             ind_1 = self.population[randint(0, self.N)]
             ind_2 = self.population[randint(0, self.N)]
             #(ii) Generating the offspring
-            offspring = generate_offspring(ind_1, ind_2, self.n_alleles, self.n_loci, self.u, self.r)
+            offspring = Population.generate_offspring(ind_1, ind_2, self.n_alleles, self.n_loci, self.u, self.r)
             for i in range(len(self.network_list)):
                 #(iii) Check whether the offspring is in the network
                 if self.is_in_network(offspring) == True:
