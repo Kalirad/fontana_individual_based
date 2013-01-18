@@ -51,37 +51,6 @@ class Population(object):
             return True
 
 
-    def define_modules(self, module_1, module_2):
-        """
-        Define the modules in the network and make sure that they belong to the network.
-
-        :param module_1: a list of sequences forming the first module in the network.
-        :param module_2: a list of sequences forming the second module in the network.
-        """
-        assert type(module_1) == list
-        assert type(module_2) == list
-        assert len(module_1 + module_2) == len(self.network_list)
-
-        # Make sure that modules belong to the network
-        for i in range(len(module_1)):
-            assert module_1[i] in self.network_list
-        for i in range(len(module_2)):
-            assert module_2[i] in self.network_list
-        self.module_1 = module_1
-        self.module_2 = module_2
-
-
-    '''
-    def define_module(self, *args):
-        
-        self.modules = {}
-        i = 1
-        for arg in args:
-            assert type(arg) == list
-            self.module[i] = arg
-            i += 1
-    '''
-
     @staticmethod
     def cross_over(seq1, seq2, n_alleles):
         """
@@ -195,21 +164,6 @@ class Population(object):
 
         for i in self.network_list:
             self.stats[i] = self.population.count(i)
-
-        # Count the number of individuals in the first module
-        module_1_genotype_count = 0
-        for i in range(len(self.module_1)):
-            module_1_genotype_count += self.stats[self.module_1[i]]
-
-        # Count the number of individuals in the second module
-        module_2_genotype_count = 0
-        for i in range(len(self.module_2)):
-            module_2_genotype_count += self.stats[self.module_2[i]]
-
-        # colculate the genotype count by subtractiing the #individuals in modules form each other
-        genotype_count = module_1_genotype_count - module_2_genotype_count
-        #self.stats['genotype_count'] = genotype_count
-        #self.stats['<m>'] = np.divide(float(genotype_count),float(self.N))
         return self.stats
 
 
