@@ -71,6 +71,16 @@ class Population(object):
         self.module_2 = module_2
 
 
+    '''
+    def define_module(self, *args):
+        
+        self.modules = {}
+        i = 1
+        for arg in args:
+            assert type(arg) == list
+            self.module[i] = arg
+            i += 1
+    '''
 
     @staticmethod
     def cross_over(seq1, seq2, n_alleles):
@@ -82,7 +92,6 @@ class Population(object):
         :param seq1:
         :param seq2:
         :param n_alleles:
-        :param n_loci:
         :return rec: the product of recombination
         """
         n_loci = len(seq1)
@@ -96,7 +105,7 @@ class Population(object):
 
 
     @staticmethod
-    def mutate(u, n_alleles,seq):
+    def mutate(n_alleles,seq):
         """
         Mutate "seq" by the probability of "u".
 
@@ -107,28 +116,26 @@ class Population(object):
         :return mutant: the product of mutation
         """
         assert type(seq) == str
-        if rnd.rand() <= u:
-            #Determine the soon-too-be-mutated locus at random
-            pos = rnd.randint(0, len(seq))
-            #Draw the mutation from available alleles
-            mut = rnd.randint(0, n_alleles)
-            #Ensure that the mutation is different from the current allele at locus of interest
-            if mut == int(seq[pos]):
-                #If the mutatnt allele is the same as current allele, draw a new mutation at random from availible alleles untill the condition is met.
-                while mut == int(seq[pos]):
-                    mut = rnd.randint(0, n_alleles)
-                else:
-                    mutatnt = seq[0:pos] + str(mut) + seq[pos+1:]
-                    return mutatnt
+    
+        #Determihe soon-too-be-mutated locus at random
+        pos = rnd.randint(0, len(seq))
+        #Draw the mutation from available alleles
+        mut = rnd.randint(0, n_alleles)
+        #Ensure that the mutation is different from the current allele at locus of interest
+        if mut == int(seq[pos]):
+            #If the mutant allele is the same as current allele, draw a new mutation at random from availible alleles untill the condition is met.
+            while mut == int(seq[pos]):
+                mut = rnd.randint(0, n_alleles)
             else:
-                mutatnt = seq[0:pos] + str(mut) + seq[pos+1:]
-                return mutatnt
+                mutant = seq[0:pos] + str(mut) + seq[pos+1:]
+                return mutant
         else:
-            return seq
-
+            mutant = seq[0:pos] + str(mut) + seq[pos+1:]
+            return mutant
+     
 
     @staticmethod
-    def generate_offspring(seq1, seq2, n_alleles, n_loci, u, r):
+    def generate_offspring(seq1, seq2, n_alleles, u, r):
         """
         Generate offspring using recombination and then mutation.
 
@@ -137,13 +144,23 @@ class Population(object):
         assert len(seq1) == len(seq2)
         if rnd.rand() <= r:
             rec = Population.cross_over(seq1, seq2, n_alleles)
+            if rnd.rand() <= u:
+                offspring = Population.mutate(n_alleles, rec)
+                return offspring
+            else:
+                offspring = rec
+                return offspring
         else:
             if rnd.randint(0,2) == 0:
                 rec = seq1
             else:
                 rec = seq2
-        offspring = Population.mutate(u, n_alleles, rec)
-        return offspring
+        if rnd.rand() <= u:
+            offspring = Population.mutate(n_alleles, rec)
+            return offspring
+        else:
+            offspring = rec
+            return offspring
 
     def get_next_generation(self):
         """
@@ -162,10 +179,10 @@ class Population(object):
             ind_1 = self.population[rnd.randint(0, self.N)]
             ind_2 = self.population[rnd.randint(0, self.N)]
             #(ii) Generating the offspring
-            offspring = Population.generate_offspring(ind_1, ind_2, self.n_alleles, self.n_loci, self.u, self.r)
+            offspring = Population.generate_offspring(ind_1, ind_2, self.n_alleles, self.u, self.r)
             for i in range(len(self.network_list)):
                 #(iii) Check whether the offspring is in the network
-                if self.contain_sequence(offspring) == True:
+                if self.contain_sequence(offspring):
                     next_generation.population.append(offspring)
         return next_generation
 
@@ -191,8 +208,8 @@ class Population(object):
 
         # colculate the genotype count by subtractiing the #individuals in modules form each other
         genotype_count = module_1_genotype_count - module_2_genotype_count
-        self.stats['genotype_count'] = genotype_count
-        self.stats['<m>'] = np.divide(float(genotype_count),float(self.N))
+        #self.stats['genotype_count'] = genotype_count
+        #self.stats['<m>'] = np.divide(float(genotype_count),float(self.N))
         return self.stats
 
 
