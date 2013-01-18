@@ -105,7 +105,7 @@ class Population(object):
 
 
     @staticmethod
-    def mutate(n_alleles,seq):
+    def mutate(seq, n_alleles):
         """
         Mutate "seq" by the probability of "u".
 
@@ -116,9 +116,9 @@ class Population(object):
         :return mutant: the product of mutation
         """
         assert type(seq) == str
-    
+        n_loci = len(seq1)    
         #Determihe soon-too-be-mutated locus at random
-        pos = rnd.randint(0, len(seq))
+        pos = rnd.randint(0, n_loci)
         #Draw the mutation from available alleles
         mut = rnd.randint(0, n_alleles)
         #Ensure that the mutation is different from the current allele at locus of interest
