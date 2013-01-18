@@ -19,6 +19,9 @@ class Population(object):
         :type starting_seq: string
         """
         assert type(starting_seq) == str
+        assert 0 <= u <= 1
+        assert r >= 0
+        assert r <= 0.5
         self.population = []
         self.N = N
         self.r = r
@@ -28,7 +31,7 @@ class Population(object):
         for i in range(N):
             self.population.append(starting_seq)
 
-    def add_list_to_network(self, lst):
+    def add_network_to_population(self, lst):
         """
         Add a list of sequences to the network.
 
@@ -39,7 +42,7 @@ class Population(object):
         self.network_list = lst
 
 
-    def is_in_network(self, offspring):
+    def contain_sequence(self, offspring):
         """
         Check to see whether the genotype is in the network
         """
@@ -48,7 +51,7 @@ class Population(object):
             return True
 
 
-    def define_module(self, module_1, module_2):
+    def define_modules(self, module_1, module_2):
         """
         Define the modules in the network and make sure that they belong to the network.
 
@@ -67,25 +70,10 @@ class Population(object):
         self.module_1 = module_1
         self.module_2 = module_2
 
-    @property
-    def modules(self):
-        """
-        Return the modules of the network.
-        """
-        return self.module_1 + self.module_2
-
-
-    @property
-    def network(self):
-        """
-        Return the list of sequnces which form the network.
-        """
-        return self.network_list
-
 
 
     @staticmethod
-    def cross_over(seq1, seq2, n_alleles, n_loci):
+    def cross_over(seq1, seq2, n_alleles):
         """
         Peform cross over between two sequences.
         Recombination happens at a random position, randint drawn from n_loci.
@@ -97,6 +85,7 @@ class Population(object):
         :param n_loci:
         :return rec: the product of recombination
         """
+        n_loci = len(seq1)
         pos = rnd.randint(1, n_loci)
         if rnd.randint(0,2) == 0:
             rec = seq1[0:pos] + seq2[pos:]
@@ -118,7 +107,6 @@ class Population(object):
         :return mutant: the product of mutation
         """
         assert type(seq) == str
-        assert 0 <= u <= 1
         if rnd.rand() <= u:
             #Determine the soon-too-be-mutated locus at random
             pos = rnd.randint(0, len(seq))
@@ -128,7 +116,7 @@ class Population(object):
             if mut == int(seq[pos]):
                 #If the mutatnt allele is the same as current allele, draw a new mutation at random from availible alleles untill the condition is met.
                 while mut == int(seq[pos]):
-                    mut = rnd.randint(0, 4)
+                    mut = rnd.randint(0, n_alleles)
                 else:
                     mutatnt = seq[0:pos] + str(mut) + seq[pos+1:]
                     return mutatnt
@@ -147,10 +135,8 @@ class Population(object):
         :return offspring: sequences which has undergone recombination and mutation.
         """
         assert len(seq1) == len(seq2)
-        assert r >= 0
-        assert r <= 0.5
         if rnd.rand() <= r:
-            rec = Population.cross_over(seq1, seq2, n_alleles, n_loci)
+            rec = Population.cross_over(seq1, seq2, n_alleles)
         else:
             if rnd.randint(0,2) == 0:
                 rec = seq1
@@ -162,6 +148,7 @@ class Population(object):
     def get_next_generation(self):
         """
         Create the next generation. The events occur in the following order:
+        
         (i) Picking two individulas from the population at random
         (ii) recombining and mutate the individulas proportional to their r and u
         (iii) See whether the offpring is a part of the network and if so add it to the next generation
@@ -172,13 +159,13 @@ class Population(object):
         next_generation.population = []
         while len(next_generation.population) < self.N:
             #(i)Picking
-            ind_1 = self.population[randint(0, self.N)]
-            ind_2 = self.population[randint(0, self.N)]
+            ind_1 = self.population[rnd.randint(0, self.N)]
+            ind_2 = self.population[rnd.randint(0, self.N)]
             #(ii) Generating the offspring
             offspring = Population.generate_offspring(ind_1, ind_2, self.n_alleles, self.n_loci, self.u, self.r)
             for i in range(len(self.network_list)):
                 #(iii) Check whether the offspring is in the network
-                if self.is_in_network(offspring) == True:
+                if self.contain_sequence(offspring) == True:
                     next_generation.population.append(offspring)
         return next_generation
 
@@ -195,12 +182,12 @@ class Population(object):
         # Count the number of individuals in the first module
         module_1_genotype_count = 0
         for i in range(len(self.module_1)):
-            module_1_genotype_count += self.stats[self.module[i]]
+            module_1_genotype_count += self.stats[self.module_1[i]]
 
         # Count the number of individuals in the second module
         module_2_genotype_count = 0
         for i in range(len(self.module_2)):
-            module_2_genotype_count += self.stats[self.module[i]]
+            module_2_genotype_count += self.stats[self.module_2[i]]
 
         # colculate the genotype count by subtractiing the #individuals in modules form each other
         genotype_count = module_1_genotype_count - module_2_genotype_count
